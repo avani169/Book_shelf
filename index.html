@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📚 BookShelf — A Personal Book Manager</title>
+  <style>
+    :root {
+      --shade1: #fef6e4;
+      --shade2: #f3d2c1;
+      --shade3: #f582ae;
+      --shade4: #8bd3dd;
+      --shade5: #001858;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background: var(--shade1);
+      color: #333;
+    }
+
+    header {
+      background: var(--shade5);
+      padding: 20px;
+      text-align: center;
+      color: #fff;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .book-form {
+      background: var(--shade2);
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .book-form input, .book-form button {
+      padding: 10px;
+      margin: 5px 0;
+      width: 100%;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .book-form input {
+      background: #fff;
+      color: #000;
+    }
+
+    .book-form button {
+      background: var(--shade3);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .book-list {
+      display: grid;
+      gap: 15px;
+    }
+
+    .book-card {
+      background: var(--shade4);
+      padding: 15px;
+      border-radius: 6px;
+      color: #001858;
+    }
+
+    .book-card h3 {
+      margin: 0 0 5px 0;
+    }
+
+    .book-card button {
+      margin-right: 10px;
+      padding: 5px 10px;
+      background: var(--shade3);
+      border: none;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📚 BookShelf — A Personal Book Manager</h1>
+  </header>
+
+  <div class="container">
+    <div class="book-form">
+      <input type="text" id="title" placeholder="Book Title">
+      <input type="text" id="author" placeholder="Author">
+      <button onclick="addBook()">Add Book</button>
+    </div>
+
+    <h2>My Books</h2>
+    <div class="book-list" id="bookList">
+      <!-- Books will be loaded here dynamically -->
+    </div>
+  </div>
+<script>
+  function loadBooks() {
+    const list = document.getElementById('bookList');
+    list.innerHTML = '<p>Loading...</p>';
+
+    fetch('books.php')
+      .then(res => {
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        list.innerHTML = '';
+        if (!data.length) {
+          list.innerHTML = '<p>No books found.</p>';
+        }
+        data.forEach(book => {
+          list.innerHTML += `
+            <div class="book-card">
+              <h3>${book.title}</h3>
+              <p>by ${book.author}</p>
+              <button onclick="editBook(${book.id}, '${book.title}', '${book.author}')">Edit</button>
+              <button onclick="deleteBook(${book.id})">Delete</button>
+            </div>`;
+        });
+      })
+      .catch(err => {
+        list.innerHTML = `<p style="color:red;">Failed to load books. Check console for details.</p>`;
+        console.error('Error fetching books:', err);
+      });
+  }
+
+  function addBook() {
+    const title = document.getElementById('title').value;
+    const author = document.getElementById('author').value;
+    if (!title || !author) {
+      alert('Please enter both title and author.');
+      return;
+    }
+    fetch('add_book.php', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: `title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}`
+    }).then(() => {
+      document.getElementById('title').value = '';
+      document.getElementById('author').value = '';
+      loadBooks();
+    });
+  }
+
+  function deleteBook(id) {
+    if (confirm("Are you sure you want to delete this book?")) {
+      fetch(`delete_book.php?id=${id}`).then(() => loadBooks());
+    }
+  }
+
+  function editBook(id, currentTitle, currentAuthor) {
+    const title = prompt('New title:', currentTitle);
+    const author = prompt('New author:', currentAuthor);
+    if (title && author) {
+      fetch('update_book.php', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: `id=${id}&title=${encodeURIComponent(title)}&author=${encodeURIComponent(author)}`
+      }).then(() => loadBooks());
+    }
+  }
+
+  window.onload = loadBooks;
+</script>
+
+</body>
+</html>
